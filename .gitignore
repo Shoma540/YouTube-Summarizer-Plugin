@@ -1,0 +1,15 @@
+# Obsidian plugin settings — contains API keys and proxy credentials
+data.json
+
+# Build output (regenerate: npx esbuild src/main.ts ...)
+main.js
+
+# npm dependencies (regenerate: npm install)
+node_modules/
+
+# Python bytecode cache
+__pycache__/
+
+# Claude Code internal state
+.claude/
+.agents/

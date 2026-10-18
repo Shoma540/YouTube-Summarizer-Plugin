@@ -1,0 +1,9 @@
+{
+  "id": "My-YouTube-Summarizer-Plugin",
+  "name": "My YouTube Summarizer",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "YouTube, articles, text, and files cleaner for Obsidian",
+  "author": "Custom",
+  "isDesktopOnly": true
+}

@@ -1,0 +1,15 @@
+{
+  "name": "youtube-summarizer",
+  "version": "1.0.0",
+  "description": "YouTube video summarizer using Claude AI",
+  "main": "main.js",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --external:obsidian --external:electron --external:child_process --external:util --external:https --format=cjs --target=es2018 --outfile=main.js"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "builtin-modules": "^5.1.0",
+    "esbuild": "^0.28.0",
+    "obsidian": "^1.12.3"
+  }
+}
