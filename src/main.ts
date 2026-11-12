@@ -1128,6 +1128,10 @@ export default class YTSummarizerPlugin extends Plugin {
       new InputModal(this.app, this, prefilledUrl, resolve).open();
     });
     if (!result) return;
+    await this.executeModalResult(result);
+  }
+
+  async executeModalResult(result: ModalResult) {
     // 停止ボタン付きで走らせる場合はモーダルが controller を持つ。
     // テキスト・ファイルモードはモーダルを閉じてしまうので、ここで作ってコマンドから止められるようにする。
     const ownedRun = result.controller ? null : this.beginRun();
@@ -3457,13 +3461,20 @@ class InputModal extends Modal {
     const scheduleUrlChange = (raw: string) => {
       if (this.folderNameFetchTimer !== null) window.clearTimeout(this.folderNameFetchTimer);
       if (this.titleFetchTimer !== null) window.clearTimeout(this.titleFetchTimer);
+      ++this.titleFetchToken;
       this.hasManualFolderSelection = false;
+      this.autoFolderName = "";
+      this.selectedFolderName = "";
+      this.isFetchingFolderName = false;
+      this.refreshFolderNameButton();
+      this.isPlaylistFetched = false;
+      this.resetPlaylistStats();
+      this.playlistItems = [{ url: "", title: "", titleInputEl: null }];
+      this.renderPlaylistArea();
+      this.updateInputModeVisibility();
       this.folderNameFetchTimer = window.setTimeout(() => {
+        this.folderNameFetchTimer = null;
         if (!raw) {
-          this.isPlaylistFetched = false;
-          this.resetPlaylistStats();
-          this.playlistItems = [{ url: "", title: "", titleInputEl: null }];
-          this.renderPlaylistArea();
           void this.tryAutoFillMeta("");
         } else if (raw.includes("playlist?list=")) {
           void this.fetchPlaylistUrls(raw);
@@ -3477,10 +3488,6 @@ class InputModal extends Modal {
               processUrl = urlObj.toString();
             } catch (_) { /* ignore invalid URL */ }
           }
-          this.isPlaylistFetched = false;
-          this.resetPlaylistStats();
-          this.playlistItems = [{ url: "", title: "", titleInputEl: null }];
-          this.renderPlaylistArea();
           void this.tryAutoFillMeta(processUrl);
         }
       }, 500);
@@ -3640,9 +3647,18 @@ class InputModal extends Modal {
       controller.abort();
     });
     const submit = () => {
+      if (this.runController) return;
       const isUrlMode = this.inputMode === "url";
       const isTextMode = this.inputMode === "text";
       const isFileMode = this.inputMode === "file";
+      if (isUrlMode && input.value.includes("playlist?list=") && (this.folderNameFetchTimer !== null || input.disabled)) {
+        new Notice("再生リストの取得が終わるまでお待ちください");
+        return;
+      }
+      if (isUrlMode && input.value.includes("playlist?list=") && !this.isPlaylistFetched) {
+        new Notice("再生リストを取得できませんでした。URLを入力し直してください");
+        return;
+      }
       if (this.inputMode === "kindle") {
         if (!this.selectedKindlePath) {
           new Notice("Kindleの本を選んでください");
@@ -3687,6 +3703,7 @@ class InputModal extends Modal {
           new Notice("未処理の動画がありません");
           return;
         }
+        if (!this.resolved) this.resolve(null);
         this.resolved = true;
         const playlistRun = this.beginRunningState();
         void this.plugin.runPlaylistSummarize({
@@ -3731,12 +3748,13 @@ class InputModal extends Modal {
         return;
       }
       const finalFolderName = this.selectedFolderName;
-      this.resolved = true;
       console.log(`[YTSummarizer] modal.submit: folderName="${finalFolderName}" directText.length=${t.length}`);
       const titleInput = this.playlistItems[0]?.titleInputEl?.value.trim() || "";
       if (isUrlMode) {
         const urlRun = this.beginRunningState();
-        this.resolve({
+        if (!this.resolved) this.resolve(null);
+        this.resolved = true;
+        void this.plugin.executeModalResult({
           url: u,
           folderName: finalFolderName,
           pdfs: selectedPdfs,
@@ -3752,7 +3770,9 @@ class InputModal extends Modal {
         });
         return;
       }
-      this.resolve({ url: u, folderName: finalFolderName, pdfs: selectedPdfs, directText: t, titleInput });
+      const result = { url: u, folderName: finalFolderName, pdfs: selectedPdfs, directText: t, titleInput };
+      if (this.resolved) void this.plugin.executeModalResult(result);
+      else { this.resolved = true; this.resolve(result); }
       this.close();
     };
     submitBtn.addEventListener("click", submit);
@@ -3793,6 +3813,17 @@ class InputModal extends Modal {
     if (this.inputMode === mode) return;
     this.inputMode = mode;
     if (mode !== "url") {
+      if (this.folderNameFetchTimer !== null) {
+        window.clearTimeout(this.folderNameFetchTimer);
+        this.folderNameFetchTimer = null;
+      }
+      ++this.titleFetchToken;
+      ++this.playlistFetchToken;
+      this.isFetchingFolderName = false;
+      if (this.urlInputEl) {
+        this.urlInputEl.disabled = false;
+        this.urlInputEl.style.opacity = "";
+      }
       this.isPlaylistFetched = false;
       this.resetPlaylistStats();
       const currentTitle = this.playlistItems[0]?.titleInputEl?.value.trim() || "";
@@ -3801,6 +3832,7 @@ class InputModal extends Modal {
     }
     this.updateInputModeVisibility();
     if (mode === "url") {
+      if (this.urlInputEl?.value.trim()) this.urlInputEl.dispatchEvent(new Event("input"));
       setTimeout(() => this.urlInputEl?.focus(), 30);
     } else if (mode === "text") {
       setTimeout(() => this.directTextEl?.focus(), 30);
@@ -4312,6 +4344,11 @@ class InputModal extends Modal {
         articleMeta = await this.plugin.fetchArticleMeta(rawUrl);
       } catch (err) {
         console.warn("[YTSummarizer] fetchArticleMeta failed", err);
+        if (!this.closed && token === this.titleFetchToken) {
+          if (this.logAreaEl) this.logAreaEl.style.display = "block";
+          if (this.copyLogBtnEl) this.copyLogBtnEl.style.display = "block";
+          this.appendLog(`⚠️ 記事情報の自動取得に失敗: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
 
       if (this.closed || token !== this.titleFetchToken) return;
