@@ -10,6 +10,13 @@
 .yt-summarizer-input:focus { outline: none; border-color: var(--interactive-accent); }
 .yt-summarizer-btn { width: 100%; padding: 10px; font-size: 14px; border-radius: 6px; cursor: pointer; border: none; }
 
+.yt-summarizer-modal button,
+.yt-summarizer-modal button:hover,
+.yt-summarizer-modal button:focus,
+.yt-summarizer-modal button:active {
+  box-shadow: none !important;
+}
+
 .yt-summarizer-playlist-stats {
   display: flex;
   flex-wrap: wrap;
@@ -54,13 +61,10 @@
 
 .yt-summarizer-mode-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  padding: 4px;
-  margin: 0 0 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 8px;
-  background: var(--background-secondary);
+  padding: 0;
+  margin: 0;
 }
 
 .yt-summarizer-mode-tab {

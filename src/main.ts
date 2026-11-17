@@ -3428,7 +3428,7 @@ class InputModal extends Modal {
     const { contentEl } = this;
     contentEl.addClass("yt-summarizer-modal");
     const titleRow = contentEl.createDiv({ cls: "yt-summarizer-title-row" });
-    titleRow.createEl("h2", { text: "清書を作成" });
+    titleRow.createEl("h2", { text: "AIで清書を作成" });
     const infoWrap = titleRow.createSpan({ cls: "yt-summarizer-info-wrap" });
     infoWrap.createSpan({ text: "i", cls: "yt-summarizer-info-icon" });
     infoWrap.createDiv({
@@ -3788,8 +3788,22 @@ class InputModal extends Modal {
   }
 
   private buildInputModeTabs(contentEl: HTMLElement) {
-    contentEl.createDiv({ text: "入力方法", cls: "yt-summarizer-field-label" });
-    const wrap = contentEl.createDiv({ cls: "yt-summarizer-mode-tabs" });
+    const row = contentEl.createDiv({ cls: "yt-summarizer-dropdown-row" });
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "8px";
+    row.style.margin = "10px 0";
+
+    const label = row.createSpan({
+      text: "入力方法",
+      cls: "yt-summarizer-dropdown-label",
+    });
+    label.style.minWidth = "130px";
+
+    const wrap = row.createDiv({ cls: "yt-summarizer-mode-tabs" });
+    wrap.style.flex = "1";
+    wrap.style.minWidth = "0";
+
     const modes: Array<{ mode: InputMode; label: string }> = [
       { mode: "url", label: "URL" },
       { mode: "text", label: "テキスト" },
@@ -4665,6 +4679,7 @@ class InputModal extends Modal {
 
       const numEl = row.createSpan();
       numEl.textContent = this.playlistItems.length > 1 ? `${idx + 1}.` : "";
+      numEl.style.display = this.playlistItems.length > 1 ? "" : "none";
       numEl.style.color = "var(--text-muted)";
       numEl.style.fontSize = "0.85em";
       numEl.style.minWidth = "22px";
